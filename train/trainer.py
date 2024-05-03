@@ -1,39 +1,40 @@
-import torch.optim as optim
-import torch
+from transformers import Trainer, TrainingArguments
+from model.transformer import TransformerConfig, HuggingFaceTransformer
 from settings import settings
-from model.transformer import Transformer
-from train.dataset import dataloader, tokenizer
+from dataset import train_dataset
+import torch
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = Transformer(
-    settings.src_vocab_size,
-    settings.embed_size,
-    settings.num_layers,
-    settings.heads,
-    settings.forward_expansion,
-    settings.dropout,
-    settings.max_length,
-    device,
-).to(device)
-criterion = torch.nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.0001)
+config = TransformerConfig(
+    vocab_size=settings.src_vocab_size,
+    embed_size=settings.embed_size,
+    num_layers=settings.num_layers,
+    heads=settings.heads,
+    forward_expansion=settings.forward_expansion,
+    dropout=settings.dropout,
+    max_length=settings.max_length,
+    device=(
+        "cuda"
+        if torch.cuda.is_available()
+        else ("mps" if torch.backends.mps.is_available() else "cpu")
+    ),
+    prompt_length=settings.prompt_length,
+    rank=settings.rank,
+)
 
+model = HuggingFaceTransformer(config)
+training_args = TrainingArguments(
+    output_dir="./model_save",
+    overwrite_output_dir=True,
+    num_train_epochs=settings.epochs,
+    per_device_train_batch_size=settings.batch_size,
+    save_steps=settings.save_steps,
+    save_total_limit=settings.total_limit,
+    prediction_loss_only=True,
+)
 
-def generate_square_subsequent_mask(size: int) -> torch.Tensor:
-    mask = torch.triu(torch.ones(size, size), diagonal=1)
-    mask = mask.masked_fill(mask == 1, float("-inf"))
-    return mask
-
-
-for epoch in range(settings.epochs):
-    for batch in dataloader:
-        batch = batch.to(device)
-        trg_mask = generate_square_subsequent_mask(batch.shape[1]).to(device)
-
-        predictions = model(batch, trg_mask)
-        loss = criterion(predictions.transpose(1, 2), batch)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        print(f"Epoch [{epoch+1}/{settings.epochs}], Loss: {loss.item():.4f}")
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+)
+trainer.train()

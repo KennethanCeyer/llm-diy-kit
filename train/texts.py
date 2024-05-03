@@ -25,5 +25,5 @@ def parse_wikipedia_abstracts(file_path: str) -> list[str]:
 
 
 texts = parse_wikipedia_abstracts(
-    PROJECT_ROOT_DIR / "train" / "example_dataset" / "enwiki-latest-abstract-small.xml"
+    PROJECT_ROOT_DIR / "train" / "example_dataset" / "enwiki-latest-abstract.xml"
 )
