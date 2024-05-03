@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from tokenizer.tokenizer import Tokenizer
 from texts import texts
 from settings import settings
@@ -22,9 +22,12 @@ class TextDataset(Dataset):
             padding="max_length",
             truncation=True,
         )
-        return tokens["input_ids"].squeeze()
+        item = {
+            "input_ids": tokens["input_ids"].squeeze(0).long(),
+        }
+
+        return item
 
 
 tokenizer = Tokenizer()
-dataset = TextDataset(texts, tokenizer)
-dataloader = DataLoader(dataset, batch_size=settings.batch_size, shuffle=True)
+train_dataset = TextDataset(texts, tokenizer)
