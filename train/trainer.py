@@ -21,7 +21,8 @@ model = Transformer(
     enable_lora=False
 ).to(device)
 criterion = nn.CrossEntropyLoss(ignore_index=-100)
-optimizer = optim.Adam(model.parameters(), lr=0.0001)
+optimizer = optim.AdamW(model.parameters(), lr=0.0001)
+scaler = torch.cuda.amp.GradScaler()
 
 
 if __name__ == "__main__":
@@ -39,10 +40,12 @@ if __name__ == "__main__":
             key_padding_mask = (attention_mask == 0)
             
             optimizer.zero_grad()
-            outputs = model(input_ids, key_padding_mask)
-            loss = criterion(outputs.view(-1, outputs.shape[-1]), labels.view(-1))
-            loss.backward()
-            optimizer.step()
+            with torch.cuda.amp.autocast():
+                outputs = model(input_ids, key_padding_mask)
+                loss = criterion(outputs.view(-1, outputs.shape[-1]), labels.view(-1))
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             
             epoch_loss += loss.item()
             if (batch_idx+1) % 100 == 0:

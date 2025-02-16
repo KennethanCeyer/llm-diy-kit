@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from settings import settings
 from tokenizer.tokenizer import Tokenizer
 
-ds = load_dataset("rahular/simple-wikipedia")
+ds = load_dataset("wikimedia/wikipedia", "20231101.en")
 tokenizer = Tokenizer()
 
 

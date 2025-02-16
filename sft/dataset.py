@@ -22,9 +22,9 @@ class InstructDataset(Dataset):
         outp = row["output"] or ""
 
         if inp.strip():
-            text = f"<|startoftext|>Human: {instr}\nInput: {inp}\nAssistant: {outp}<|endoftext|>"
+            text = f"### Instruction: {instr}\n### Input: {inp}\n### Response: {outp}"
         else:
-            text = f"<|startoftext|>Human: {instr}\nAssistant: {outp}<|endoftext|>"
+            text = f"### Instruction: {instr}\### Response: {outp}"
 
         return text
     

@@ -30,7 +30,7 @@ for name, param in model.named_parameters():
 
 criterion = nn.CrossEntropyLoss(ignore_index=-100)
 trainable_params = [p for p in model.parameters() if p.requires_grad]
-optimizer = optim.Adam(trainable_params, lr=1e-4)
+optimizer = optim.AdamW(trainable_params, lr=1e-4)
 
 
 if __name__ == "__main__":
