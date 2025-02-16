@@ -46,32 +46,27 @@ This project has been created to help you understand how large language models (
 flowchart TD
     subgraph TransformerModel
       A[Input Tokens] --> B[Decoder]
-      B --> C[LM Head (Linear)]
+      B --> C[LM Head - Linear]
       C --> D[Output Logits]
     end
 
     subgraph Decoder [Decoder]
       direction TB
-      E[Token Embedding] --> F[Position Embedding]
-      G[Sum Embeddings] --> H[Stack of Transformer Blocks]
-      E --> G
+      E[Token Embedding]
+      F[Position Embedding]
+      E --> G[Sum Embeddings]
       F --> G
-      G --> H
+      G --> H[Stack of Transformer Blocks]
     end
 
     subgraph TransformerBlock [Transformer Block]
       direction LR
-      I[Multi-Head Self-Attention]
-      J[Add & Norm]
-      K[Feed-Forward Network<br/>(with LoRALinear modules)]
-      L[Add & Norm]
-      I --> J
-      J --> K
-      K --> L
+      I[Multi-Head Self-Attention] --> J[Add & Norm]
+      J --> K[Feed-Forward - LoRA Enabled]
+      K --> L[Add & Norm]
     end
 
-    %% Connect Decoder to multiple TransformerBlocks
-    H --> TransformerBlock
+    H --> I
 ```
 
 ---
