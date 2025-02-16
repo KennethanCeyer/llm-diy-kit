@@ -1,4 +1,4 @@
-<h1 align="center">LLM DIY KIT</h1>
+<h1 align="center">DIY Kit | Generative AI | Language Model</h1>
 <p align="center">
   <img width="150" src="./assets/diy.png" />
 </p>
