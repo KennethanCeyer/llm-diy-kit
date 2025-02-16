@@ -69,10 +69,10 @@ flowchart TD
     H --> I
 ```
 
-| Item             | Description |
-| ---------------- | ----------- |
-| Hyper parameters | 64M         |
-| Model size       | 245MB       |
+| Item                 | Description |
+| -------------------- | ----------- |
+| Number of parameters | 64M         |
+| Model size           | 245MB       |
 
 ---
 
