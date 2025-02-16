@@ -71,8 +71,8 @@ flowchart TD
 
 | Item                 | Description |
 | -------------------- | ----------- |
-| Number of parameters | 64M         |
-| Model size           | 245MB       |
+| Number of parameters | 186M        |
+| Model size           | 711MB       |
 
 ---
 

@@ -9,7 +9,7 @@ tokenizer = Tokenizer()
 
 
 def collate_fn(batch):
-    texts = [item["text"] for item in batch]
+    texts = [item["text"][:settings.max_length] for item in batch]
     encoding = tokenizer.tokenize(
         texts,
         padding="max_length",

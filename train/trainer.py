@@ -22,8 +22,7 @@ model = Transformer(
 ).to(device)
 criterion = nn.CrossEntropyLoss(ignore_index=-100)
 optimizer = optim.AdamW(model.parameters(), lr=0.0001)
-scaler = torch.cuda.amp.GradScaler()
-
+scaler = torch.amp.GradScaler()
 
 if __name__ == "__main__":
     model.train()
@@ -32,21 +31,21 @@ if __name__ == "__main__":
         for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
             input_ids = input_ids.to(device)
             attention_mask = attention_mask.to(device)
-            
+
             labels = input_ids.clone()
             labels[:, :-1] = input_ids[:, 1:].clone()
             labels[:, -1] = -100
-            
+
             key_padding_mask = (attention_mask == 0)
-            
+
             optimizer.zero_grad()
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast(device_type=device):
                 outputs = model(input_ids, key_padding_mask)
                 loss = criterion(outputs.view(-1, outputs.shape[-1]), labels.view(-1))
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
-            
+
             epoch_loss += loss.item()
             if (batch_idx+1) % 100 == 0:
                 print(f"Epoch [{epoch+1}/{settings.num_epochs_pretrain}], Step [{batch_idx+1}/{len(train_dataloader)}], Loss: {loss.item():.4f}")
