@@ -1,39 +1,54 @@
-import torch.optim as optim
 import torch
-from settings import settings
+from torch import nn, optim
+
 from model.transformer import Transformer
-from train.dataset import dataloader, tokenizer
+from settings import settings
+from train.dataset import train_dataloader
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = Transformer(
-    settings.src_vocab_size,
-    settings.embed_size,
-    settings.num_layers,
-    settings.heads,
-    settings.forward_expansion,
-    settings.dropout,
-    settings.max_length,
-    device,
+    vocab_size=settings.vocab_size,
+    embed_size=settings.embed_size,
+    num_layers=settings.num_layers,
+    num_heads=settings.num_heads,
+    forward_expansion=settings.forward_expansion,
+    dropout=settings.dropout,
+    max_length=settings.max_length,
+    device=device,
+    lora_r=4,
+    lora_alpha=8,
+    lora_dropout=0.05,
+    enable_lora=False
 ).to(device)
-criterion = torch.nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss(ignore_index=-100)
 optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
 
-def generate_square_subsequent_mask(size: int) -> torch.Tensor:
-    mask = torch.triu(torch.ones(size, size), diagonal=1)
-    mask = mask.masked_fill(mask == 1, float("-inf"))
-    return mask
+if __name__ == "__main__":
+    model.train()
+    for epoch in range(settings.num_epochs_pretrain):
+        epoch_loss = 0.0
+        for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
+            input_ids = input_ids.to(device)
+            attention_mask = attention_mask.to(device)
+            
+            labels = input_ids.clone()
+            labels[:, :-1] = input_ids[:, 1:].clone()
+            labels[:, -1] = -100
+            
+            key_padding_mask = (attention_mask == 0)
+            
+            optimizer.zero_grad()
+            outputs = model(input_ids, key_padding_mask)
+            loss = criterion(outputs.view(-1, outputs.shape[-1]), labels.view(-1))
+            loss.backward()
+            optimizer.step()
+            
+            epoch_loss += loss.item()
+            if (batch_idx+1) % 100 == 0:
+                print(f"Epoch [{epoch+1}/{settings.num_epochs_pretrain}], Step [{batch_idx+1}/{len(train_dataloader)}], Loss: {loss.item():.4f}")
+        avg_loss = epoch_loss / len(train_dataloader)
+        print(f"Epoch [{epoch+1}/{settings.num_epochs_pretrain}] Average Loss: {avg_loss:.4f}")
 
-
-for epoch in range(settings.epochs):
-    for batch in dataloader:
-        batch = batch.to(device)
-        trg_mask = generate_square_subsequent_mask(batch.shape[1]).to(device)
-
-        predictions = model(batch, trg_mask)
-        loss = criterion(predictions.transpose(1, 2), batch)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        print(f"Epoch [{epoch+1}/{settings.epochs}], Loss: {loss.item():.4f}")
+        torch.save(model.state_dict(), "pretrained_model.pth")
+        print("=== Pretrain Done. Saved => pretrained_model.pth ===")

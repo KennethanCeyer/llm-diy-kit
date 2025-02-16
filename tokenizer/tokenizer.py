@@ -1,9 +1,10 @@
-from transformers import XLMRobertaTokenizer
+from transformers import GPT2TokenizerFast
 
 
 class Tokenizer:
     def __init__(self):
-        self.tokenizer = XLMRobertaTokenizer.from_pretrained("xlm-roberta-base")
+        self.tokenizer = GPT2TokenizerFast.from_pretrained("distilgpt2")
+        self.tokenizer.pad_token = self.tokenizer.eos_token
 
     def tokenize(self, text, return_tensors="pt", **kwargs):
         return self.tokenizer(text, return_tensors=return_tensors, **kwargs)

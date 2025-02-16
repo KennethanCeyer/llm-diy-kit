@@ -1,26 +1,47 @@
 import torch
+from torch import nn
+
+from model.linear import LoRALinear
 
 
-class TransformerBlock(torch.nn.Module):
-    def __init__(self, embed_size, heads, dropout, forward_expansion):
-        super(TransformerBlock, self).__init__()
-        self.attention = torch.nn.MultiheadAttention(
-            embed_dim=embed_size, num_heads=heads, batch_first=True
+class TransformerBlock(nn.Module):
+    def __init__(self, embed_size, num_heads, dropout, forward_expansion,
+                 lora_r=4, lora_alpha=8, lora_dropout=0.0,
+                 enable_lora=False):
+        super().__init__()
+        self.attn = nn.MultiheadAttention(embed_size, num_heads, batch_first=True)
+        self.norm1 = nn.LayerNorm(embed_size)
+        self.norm2 = nn.LayerNorm(embed_size)
+
+        hidden_dim = forward_expansion * embed_size
+        self.ff1 = LoRALinear(
+            in_features=embed_size,
+            out_features=hidden_dim,
+            r=lora_r,
+            alpha=lora_alpha,
+            dropout=lora_dropout,
+            bias=True,
+            enable_lora=enable_lora
         )
-        self.norm1 = torch.nn.LayerNorm(embed_size)
-        self.norm2 = torch.nn.LayerNorm(embed_size)
-
-        self.feed_forward = torch.nn.Sequential(
-            torch.nn.Linear(embed_size, forward_expansion * embed_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(forward_expansion * embed_size, embed_size),
+        self.act = nn.SiLU()
+        self.ff2 = LoRALinear(
+            in_features=hidden_dim,
+            out_features=embed_size,
+            r=lora_r,
+            alpha=lora_alpha,
+            dropout=lora_dropout,
+            bias=True,
+            enable_lora=enable_lora
         )
+        self.drop = nn.Dropout(dropout)
 
-        self.dropout = torch.nn.Dropout(dropout)
+    def forward(self, x, key_padding_mask=None, attn_mask=None):
+        # x shape: (batch, seq_len, embed_size)
+        attn_out, _ = self.attn(x, x, x, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
+        x = self.norm1(x + attn_out)
+        x = self.drop(x)
 
-    def forward(self, value, key, query, mask):
-        attention = self.attention(query, key, value, attn_mask=mask)[0]
-        x = self.dropout(self.norm1(attention + query))
-        forward = self.feed_forward(x)
-        out = self.dropout(self.norm2(forward + x))
-        return out
+        ff_out = self.ff2(self.act(self.ff1(x)))
+        x = self.norm2(x + ff_out)
+        x = self.drop(x)
+        return x

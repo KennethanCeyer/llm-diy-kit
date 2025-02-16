@@ -1,30 +1,27 @@
-import torch
-from torch.utils.data import Dataset, DataLoader
-from tokenizer.tokenizer import Tokenizer
-from texts import texts
+from datasets import load_dataset
+from torch.utils.data import DataLoader
+
 from settings import settings
+from tokenizer.tokenizer import Tokenizer
 
-
-class TextDataset(Dataset):
-    def __init__(self, texts, tokenizer):
-        self.texts = texts
-        self.tokenizer = tokenizer
-
-    def __len__(self) -> int:
-        return len(self.texts)
-
-    def __getitem__(self, idx) -> torch.Tensor:
-        text = self.texts[idx]
-        tokens = self.tokenizer.tokenize(
-            text,
-            return_tensors="pt",
-            max_length=settings.max_length,
-            padding="max_length",
-            truncation=True,
-        )
-        return tokens["input_ids"].squeeze()
-
-
+ds = load_dataset("rahular/simple-wikipedia")
 tokenizer = Tokenizer()
-dataset = TextDataset(texts, tokenizer)
-dataloader = DataLoader(dataset, batch_size=settings.batch_size, shuffle=True)
+
+
+def collate_fn(batch):
+    texts = [item["text"] for item in batch]
+    encoding = tokenizer.tokenize(
+        texts,
+        padding="max_length",
+        truncation=True,
+        max_length=settings.max_length,
+        return_attention_mask=True,
+        return_tensors="pt"
+    )
+    input_ids = encoding["input_ids"]
+    attention_mask = encoding["attention_mask"]
+    return input_ids, attention_mask
+
+
+train_dataset = ds["train"]
+train_dataloader = DataLoader(train_dataset, batch_size=settings.batch_size, shuffle=True, collate_fn=collate_fn)
