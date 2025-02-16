@@ -50,5 +50,7 @@ if __name__ == "__main__":
         avg_loss = epoch_loss / len(train_dataloader)
         print(f"Epoch [{epoch+1}/{settings.num_epochs_pretrain}] Average Loss: {avg_loss:.4f}")
 
-        torch.save(model.state_dict(), "pretrained_model.pth")
-        print("=== Pretrain Done. Saved => pretrained_model.pth ===")
+        model_path = f"pretrained_model_epoch_{epoch+1}.pth"
+        torch.save(model.state_dict(), model_path)
+
+        print(f"=== Pretrain Done for Epoch {epoch+1}. Saved => {model_path} ===")
